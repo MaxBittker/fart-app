@@ -1301,6 +1301,7 @@ function createTextureAsync(url, alpha = false) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
   let format = alpha ? gl.RGBA : gl.RGB;
+  let defaultData = alpha ? [255, 255, 255, 255] : [255, 255, 255];
   gl.texImage2D(
     gl.TEXTURE_2D,
     0,
@@ -1310,7 +1311,7 @@ function createTextureAsync(url, alpha = false) {
     0,
     format,
     gl.UNSIGNED_BYTE,
-    new Uint8Array([255, 255, 255, 255])
+    new Uint8Array(defaultData)
   );
 
   let obj = {
