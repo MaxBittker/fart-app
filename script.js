@@ -23,9 +23,9 @@ SOFTWARE.
 */
 "use strict";
 const dat = require("dat.gui");
-import { sound, startFart, modulateFart, endFart } from "./sound";
+import { startFart, modulateFart, endFart } from "./sound";
 
-sound();
+// sound();
 //create a synth and connect it to the master output (your speakers)
 
 //play a middle 'C' for the duration of an 8th note
@@ -664,7 +664,7 @@ vec3 hsv2rgb(vec3 c)
       gl_FragColor = vec4(c, 1.0);
 
 vec4 cheek = texture2D(uCheek, buttpos);;
-if(cheek.a>0.9){
+if(cheek.a>=1.0){
   gl_FragColor = cheek;
 }
 
@@ -1795,6 +1795,8 @@ canvas.addEventListener("touchstart", e => {
   for (let i = 0; i < touches.length; i++) {
     let posX = scaleByPixelRatio(touches[i].pageX);
     let posY = scaleByPixelRatio(touches[i].pageY);
+    startX = posX;
+    startY = posY;
     updatePointerDownData(pointers[i + 1], touches[i].identifier, posX, posY);
   }
 });
@@ -1802,7 +1804,6 @@ canvas.addEventListener("touchstart", e => {
 canvas.addEventListener(
   "touchmove",
   e => {
-    endFart();
     e.preventDefault();
     const touches = e.targetTouches;
     for (let i = 0; i < touches.length; i++) {
@@ -1810,6 +1811,11 @@ canvas.addEventListener(
       if (!pointer.down) continue;
       let posX = scaleByPixelRatio(touches[i].pageX);
       let posY = scaleByPixelRatio(touches[i].pageY);
+      let dx = startX - posX;
+      let dy = startY - posY;
+      let distance = Math.sqrt(dx * dx + dy * dy);
+      modulateFart(distance);
+
       // updatePointerMoveData(pointer, posX, posY);
     }
   },
@@ -1819,6 +1825,7 @@ canvas.addEventListener(
 window.addEventListener("touchend", e => {
   // config.PAUSED = false;
   magnitude = 0.0;
+  endFart();
 
   const touches = e.changedTouches;
   for (let i = 0; i < touches.length; i++) {

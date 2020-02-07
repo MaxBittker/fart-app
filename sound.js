@@ -1,36 +1,70 @@
 import Tone from "tone";
+// import StartAudioContext from "startaudiocontext";
 
-let FSynth;
-var filter = new Tone.Filter(200, "highpass");
+let started = false;
+
+let startbutton = document.getElementById("start");
+let startAudio = function() {
+  if (started) {
+    return;
+  }
+  Tone.start().then(() => {
+    started = true;
+    sound();
+  });
+};
+startbutton.addEventListener("touchstart", startAudio);
+startbutton.addEventListener("touchend", startAudio);
+startbutton.addEventListener("mousedown", startAudio);
+
+let synth;
 
 function sound() {
-  FSynth = new Tone.Synth(6, Tone.Synth, {
-    oscillator: {
-      type: "triangle"
-    }
-  })
-    .chain(filter)
-    .toMaster();
+  //   var filter = new Tone.Filter(-12, "lowpass");
+  //   console.log(input);
+  var filter = new Tone.LowpassCombFilter();
 
-  FSynth.set("volume", 5);
-  FSynth.triggerAttack("C4");
-  FSynth.set("frequency", 0);
+  synth = new Tone.FMSynth({
+    modulationIndex: 3.22,
+    envelope: {
+      attack: 0.01,
+      decay: 0.2
+    },
+    modulation: {
+      type: "pulse"
+    },
+    modulationEnvelope: {
+      attack: 0.2,
+      decay: 0.01
+    }
+  }).toMaster();
+  // .chain(filter)
+  // .toMaster();
+
+  synth.set("volume", 5);
+  //   synth.triggerAttack("C4");
+  synth.set("frequency", 0);
 }
 
 function startFart() {
-  FSynth.triggerAttack("C4");
+  if (!started) {
+    return;
+  }
+  synth.triggerAttack("C4");
 }
 function modulateFart(input) {
   if (isNaN(input)) {
-    // console.log(input);
     return;
   }
-  FSynth.set("frequency", input);
+  synth.set("detune", input * 2);
 }
 function endFart() {
-  FSynth.triggerRelease();
+  if (!started) {
+    return;
+  }
+  synth.triggerRelease();
 }
-export { sound, startFart, modulateFart, endFart };
+export { startFart, modulateFart, endFart };
 
 // let blooper = new Tone.PolySynth(6, Tone.Synth, {
 //   oscillator: {
