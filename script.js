@@ -21,8 +21,22 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-
 "use strict";
+const dat = require("dat.gui");
+import { sound, startFart, modulateFart, endFart } from "./sound";
+
+sound();
+//create a synth and connect it to the master output (your speakers)
+
+//play a middle 'C' for the duration of an 8th note
+
+// document.querySelector("canvas").addEventListener("click", async () => {
+//   await Tone.start();
+//   console.log("audio is ready");
+//   const synth = new Tone.Synth().toDestination();
+
+// synth.triggerAttackR 2 5
+
 const glsl = x => x;
 const canvas = document.getElementsByTagName("canvas")[0];
 resizeCanvas();
@@ -97,8 +111,10 @@ function getWebGLContext(canvas) {
     preserveDrawingBuffer: false
   };
 
-  let gl = canvas.getContext("webgl2", params);
-  const isWebGL2 = !!gl;
+  let gl = canvas.getContext("webgl", params);
+  let isWebGL2 = !!gl;
+  isWebGL2 = false;
+
   if (!isWebGL2)
     gl =
       canvas.getContext("webgl", params) ||
@@ -130,13 +146,6 @@ function getWebGLContext(canvas) {
     formatRG = getSupportedFormat(gl, gl.RGBA, gl.RGBA, halfFloatTexType);
     formatR = getSupportedFormat(gl, gl.RGBA, gl.RGBA, halfFloatTexType);
   }
-
-  ga(
-    "send",
-    "event",
-    isWebGL2 ? "webgl2" : "webgl",
-    formatRGBA == null ? "not supported" : "supported"
-  );
 
   return {
     gl,
@@ -650,13 +659,13 @@ vec3 hsv2rgb(vec3 c)
         c += bloom;
     #endif
 
-      vec2 buttpos = vec2(pos.x,1.0 - pos.y);
-      c+= texture2D(uButt, buttpos).rgb;
-        gl_FragColor = vec4(c, 1.0);
+      vec2 buttpos = vec2(pos.x/1.6,1.0 - pos.y);
+       c+= texture2D(uButt, buttpos).rgb;
+      gl_FragColor = vec4(c, 1.0);
+
 vec4 cheek = texture2D(uCheek, buttpos);;
 if(cheek.a>0.9){
   gl_FragColor = cheek;
-
 }
 
     }
@@ -983,6 +992,7 @@ const gradientSubtractShader = compileShader(
     varying highp vec2 vB;
     uniform sampler2D uPressure;
     uniform sampler2D uVelocity;
+    // uniform sampler2D uCheek;
 
     void main () {
         float L = texture2D(uPressure, vL).x;
@@ -990,7 +1000,15 @@ const gradientSubtractShader = compileShader(
         float T = texture2D(uPressure, vT).x;
         float B = texture2D(uPressure, vB).x;
         vec2 velocity = texture2D(uVelocity, vUv).xy;
+      vec2 buttpos = vec2(vUv.x,1.0 - vUv.y);
+
+        // vec4 cell = texture2D(uCheek, buttpos);
+
         velocity.xy -= vec2(R - L, T - B);
+
+        // if(cell.a>0.9 && velocity.x<0.){
+          // velocity.xy = vec2(0.0);
+        // }
         gl_FragColor = vec4(velocity, 0.0, 1.0);
     }
 `
@@ -1028,9 +1046,10 @@ let bloomFramebuffers = [];
 let sunrays;
 let sunraysTemp;
 
-let ditheringTexture = createTextureAsync("LDR_LLL1_0.png");
-let buttTexture = createTextureAsync("butt.png");
-let cheekTexture = createTextureAsync("left_cheek.png", true);
+let ditheringTexture = createTextureAsync(require("./LDR_LLL1_0.png"));
+let buttTexture = createTextureAsync(require("./butt.png"));
+// let buttTexture = createTextureAsync("butt.png", true);
+let cheekTexture = createTextureAsync(require("./left_cheek.png"), true);
 
 const blurProgram = new Program(blurVertexShader, blurShader);
 const copyProgram = new Program(baseVertexShader, copyShader);
@@ -1333,7 +1352,6 @@ function createTextureAsync(url, alpha = false) {
     gl.texImage2D(gl.TEXTURE_2D, 0, format, format, gl.UNSIGNED_BYTE, image);
   };
   image.src = url;
-
   return obj;
 }
 
@@ -1473,6 +1491,8 @@ function step(dt) {
     gradienSubtractProgram.uniforms.uVelocity,
     velocity.read.attach(1)
   );
+  // gl.uniform1i(gradienSubtractProgram.uniforms.uCheek, cheekTexture.attach(2));
+
   blit(velocity.write.fbo);
   velocity.swap();
 
@@ -1563,6 +1583,7 @@ function drawDisplay(fbo, width, height) {
   gl.uniform1i(displayMaterial.uniforms.uTexture, dye.read.attach(0));
 
   gl.uniform1i(displayMaterial.uniforms.uButt, buttTexture.attach(4));
+
   gl.uniform1i(displayMaterial.uniforms.uCheek, cheekTexture.attach(5));
 
   if (config.BLOOM) {
@@ -1726,31 +1747,44 @@ function correctRadius(radius) {
   if (aspectRatio > 1) radius *= aspectRatio;
   return radius;
 }
-
+let startX;
+let startY;
 canvas.addEventListener("mousedown", e => {
   let posX = scaleByPixelRatio(e.offsetX);
   let posY = scaleByPixelRatio(e.offsetY);
+  startFart();
+  startX = posX;
+  startY = posY;
   let pointer = pointers.find(p => p.id == -1);
   if (pointer == null) pointer = new pointerPrototype();
   // updatePointerDownData(pointer, -1, posX, posY);
+  // bloop();
   magnitude = 1.0;
 });
 
 canvas.addEventListener("mousemove", e => {
-  let pointer = pointers[0];
-  if (!pointer.down) return;
   let posX = scaleByPixelRatio(e.offsetX);
   let posY = scaleByPixelRatio(e.offsetY);
+  let dx = startX - posX;
+  let dy = startY - posY;
+  let distance = Math.sqrt(dx * dx + dy * dy);
+  modulateFart(distance);
+  let pointer = pointers[0];
+  if (!pointer.down) return;
+
   // updatePointerMoveData(pointer, posX, posY);
 });
 
 window.addEventListener("mouseup", () => {
+  endFart();
+
   // updatePointerUpData(pointers[0]);
   magnitude = 0.0;
 });
 
 canvas.addEventListener("touchstart", e => {
   magnitude = 1.0;
+  startFart();
 
   e.preventDefault();
   // config.PAUSED = true;
@@ -1768,6 +1802,7 @@ canvas.addEventListener("touchstart", e => {
 canvas.addEventListener(
   "touchmove",
   e => {
+    endFart();
     e.preventDefault();
     const touches = e.targetTouches;
     for (let i = 0; i < touches.length; i++) {
