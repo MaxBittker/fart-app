@@ -49,10 +49,10 @@ let config = {
   DYE_RESOLUTION: 1024,
   CAPTURE_RESOLUTION: 512,
   DENSITY_DISSIPATION: 0.6,
-  VELOCITY_DISSIPATION: 2.73,
-  PRESSURE: 0.8,
+  VELOCITY_DISSIPATION: 1.73,
+  PRESSURE: 0.3,
   PRESSURE_ITERATIONS: 20,
-  CURL: 3,
+  CURL: 5,
   SPLAT_FORCE: 6000,
   SHADING: true,
   COLORFUL: false,
@@ -658,9 +658,10 @@ vec3 hsv2rgb(vec3 c)
         bloom = linearToGamma(bloom);
         c += bloom;
     #endif
-
+      c*=2.;
       vec2 buttpos = vec2(pos.x/1.6,1.0 - pos.y);
-       c+= texture2D(uButt, buttpos).rgb;
+        c+= texture2D(uButt, buttpos).rgb;
+
       gl_FragColor = vec4(c, 1.0);
 
 vec4 cheek = texture2D(uCheek, buttpos);;
@@ -1009,6 +1010,7 @@ const gradientSubtractShader = compileShader(
         // if(cell.a>0.9 && velocity.x<0.){
           // velocity.xy = vec2(0.0);
         // }
+        velocity.y+= 0.5;
         gl_FragColor = vec4(velocity, 0.0, 1.0);
     }
 `
