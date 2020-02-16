@@ -50,11 +50,11 @@ let config = {
   CAPTURE_RESOLUTION: 512,
   DENSITY_DISSIPATION: 0.6,
   VELOCITY_DISSIPATION: 1.73,
-  PRESSURE: 0.3,
+  PRESSURE: 0.1,
   PRESSURE_ITERATIONS: 20,
-  CURL: 5,
+  CURL: 9,
   SPLAT_FORCE: 6000,
-  SHADING: true,
+  SHADING: false,
   COLORFUL: false,
   COLOR_UPDATE_SPEED: 10,
   PAUSED: false,
@@ -659,15 +659,18 @@ vec3 hsv2rgb(vec3 c)
         c += bloom;
     #endif
       c*=2.;
-      vec2 buttpos = vec2(pos.x/1.6,1.0 - pos.y);
+      float ratio= resolution.x / resolution.y;
+      vec2 buttpos = vec2(pos.x/1.2,1.0 - pos.y);
         c+= texture2D(uButt, buttpos).rgb;
 
-      gl_FragColor = vec4(c, 1.0);
+        vec4 cheek = texture2D(uCheek, buttpos);
+      if(cheek.a>=1.0){
+        c = cheek.rgb;
+      }
 
-vec4 cheek = texture2D(uCheek, buttpos);;
-if(cheek.a>=1.0){
-  gl_FragColor = cheek;
-}
+
+      gl_FragColor = vec4(vec3(1.0)-c, 1.0);
+
 
     }
 `;
@@ -815,7 +818,7 @@ const splatShader = compileShader(
     void main () {
         vec2 p = vUv - point.xy;
         p.x *= aspectRatio;
-        vec3 splat = exp(-dot(p, p) / radius) * color;
+        vec3 splat = exp(-dot(p, p) / radius) * color ;
         vec3 base = texture2D(uTarget, vUv).xyz;
         gl_FragColor = vec4(base + splat, 1.0);
     }
@@ -1713,11 +1716,12 @@ let i = 0;
 function fartSplat(amount) {
   let j = 0.1;
   let color = HSVtoRGB(0.05 + Math.sin(Math.PI * 2 * j) * 0.05, 0.5, 0.5);
+  color = HSVtoRGB(0.05 + Math.sin(Math.PI * 2 * j) * 0.05, 0.3, 0.5);
   color.r /= 10.0;
   color.g /= 10.0;
   color.b /= 10.0;
 
-  const x = 0.7;
+  const x = 0.5;
   const y = 0.4;
 
   const dx = 1.0 * amount * magnitude;
